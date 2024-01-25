@@ -24,6 +24,28 @@
   justify-content: center;
 }
 
+.container-html {
+  width: 100vw;
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  height: 100vh;
+  justify-content: center;
+}
+
+.html-right {
+  width: 50vw;
+  display: flex;
+  justify-content: center;
+}
+
+.container-html-right {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(3em, 8fr));
+  gap: 1em;
+  width: 60%;
+}
+
 .truck-html-right {
   width: 50vw;
   display: flex;
@@ -52,4 +74,10 @@
 .truck-html-right3 {
   opacity: 0;
   pointer-events: none;
+}
+
+.wheels-container img {
+  width: 100%;
+  border-radius: 20%;
+  cursor: pointer;
 }

@@ -1,6 +1,12 @@
 import { useRef, useState, useEffect, useLayoutEffect } from "react";
 import * as THREE from "three";
-import { Environment, CameraControls, Center, Html } from "@react-three/drei";
+import {
+  Environment,
+  CameraControls,
+  Center,
+  Html,
+  useTexture,
+} from "@react-three/drei";
 
 import gsap from "gsap";
 
@@ -12,6 +18,8 @@ import TrucksHtml from "./HTML/TrucksHtml";
 
 import { HexColorPicker } from "react-colorful";
 import WheelsHtml from "./HTML/WheelsHtml";
+
+const texture_urls = wheelsInfo.map((w) => w.texture_url);
 
 const Scene = () => {
   const positions = [];
@@ -46,13 +54,39 @@ const Scene = () => {
   }, []);
 
   const { camera, scene } = useThree();
+  const wheelTextures = useTexture(texture_urls);
+
+  useEffect(() => {
+    gsapCtx.current.introAnimation();
+    wheelTextures.forEach((t) => {
+      t.needsUpdate = true;
+      t.flipY = false;
+    });
+  }, []);
 
   useLayoutEffect(() => {
     gsapCtx.current = gsap.context((self) => {
+      const introTL = gsap.timeline();
       const boardMaterials = meshGroupRef.current.children.map(
         (g) => g.children[0].material
       );
-
+      self.add("introAnimation", () => {
+        introTL
+          .to(boardMaterials, {
+            opacity: 1,
+            ease: "power2.out",
+            duration: 1,
+          })
+          .to(
+            meshGroupRef.current.position,
+            {
+              z: 0,
+              ease: "power2.out",
+              duration: 1,
+            },
+            0
+          );
+      });
       self.add("boardToTrucksTransition", (deckIndex) => {
         const tl = gsap.timeline();
         const currentDeckGroup = meshGroupRef.current.children[deckIndex];
@@ -226,10 +260,9 @@ const Scene = () => {
       self.add("absorbersToWheelsTransition", () => {
         const currentBoardGroup = meshGroupRef.current.children[0];
         const wheelsGroup = currentBoardGroup.children[2].children[0];
+
         const frontWheel = wheelsGroup.children[2];
-
         const frontWheelPositionX = frontWheel.position.x;
-
         const frontBearing = wheelsGroup.children[4].children[6];
         const bearingPart1 = wheelsGroup.children[4].children[3];
         const bearingPart2 = wheelsGroup.children[4].children[0];
@@ -320,7 +353,45 @@ const Scene = () => {
             duration: 0.5,
           });
       });
-      self.add("scrollWheels", (snapIndex) => {});
+      self.add("scrollWheels", (snapIndex) => {
+        if (
+          animationActive ||
+          wheelTextures[snapIndex] === wheelUniformRef.current.texture2.value
+        )
+          return;
+
+        wheelUniformRef.current.texture2.value = wheelTextures[snapIndex];
+        const currentBoardGroup = meshGroupRef.current.children[0];
+        const wheelsGroup = currentBoardGroup.children[2].children[0];
+        const frontWheel = wheelsGroup.children[2];
+
+        const tl = gsap.timeline();
+        tl.to(
+          wheelUniformRef.current.mixValue,
+          {
+            value: 1,
+
+            onComplete: () => {
+              wheelUniformRef.current.texture1.value = wheelTextures[snapIndex];
+              wheelUniformRef.current.mixValue.value = 0;
+            },
+          },
+          0
+        ).to(
+          frontWheel.rotation,
+          {
+            x: frontWheel.rotation.x - Math.PI * 1.5,
+            duration: 0.5,
+            onStart: () => {
+              setAnimationActive(true);
+            },
+            onComplete: () => {
+              setAnimationActive(false);
+            },
+          },
+          0
+        );
+      });
     });
   });
 
@@ -407,8 +478,8 @@ const Scene = () => {
     }
   };
 
-  const snapWheelsScroll = () => {
-    console.log("wheels");
+  const snapWheelsScroll = (currentWheelskIndex) => {
+    if (gsapCtx.current) gsapCtx.current.scrollWheels(currentWheelskIndex);
   };
 
   return (
@@ -509,19 +580,23 @@ const Scene = () => {
       <group ref={wheelsGroupContainerRef}>
         <Html
           center
-          className="w-html-container w-html-container truck-html-right3"
+          className="w-html-container w-html-container truck-html-right3 container-html"
         >
-          {wheelsInfo.map((w, i) => {
-            return (
-              <WheelsHtml
-                info={w}
-                index={i}
-                key={i}
-                currentSection={currentSection}
-                snapWheelsScroll={snapWheelsScroll}
-              />
-            );
-          })}
+          <div className="html-right ">
+            <div className="container-html-right">
+              {wheelsInfo.map((w, i) => {
+                return (
+                  <WheelsHtml
+                    info={w}
+                    index={i}
+                    key={i}
+                    currentSection={currentSection}
+                    snapWheelsScroll={snapWheelsScroll}
+                  />
+                );
+              })}
+            </div>
+          </div>
         </Html>
       </group>
       <group ref={absorbersGroupContainerRef} name="trucks-container">

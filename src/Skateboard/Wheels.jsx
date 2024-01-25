@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { useGLTF, useTexture } from "@react-three/drei";
 
 import { wheelsInfo } from "../info.js";
@@ -51,45 +51,42 @@ const WheelsMaterial = ({ wheelUniformRef, wheelRoughness }) => {
 };
 
 const Wheels = (props) => {
-  const { nodes, materials } = useGLTF("/wheels.glb");
-  const groupRef = useRef();
-
   const { wheelUniformRef } = props;
 
-  const wheelsTexture = useTexture(wheelsInfo[0].texture_url);
+  const { nodes, materials } = useGLTF("/wheels.glb");
   const wheelRoughness = materials["wheelMaterial"].roughness;
 
-  wheelsTexture.flipY = false;
+  const groupRef = useRef();
+  const mainWheelRef = useRef();
+
+  useEffect(() => {
+    groupRef.current.children.forEach((mesh) => {
+      if (mesh !== mainWheelRef.current) {
+        mesh.material = mainWheelRef.current.material;
+      }
+    });
+  }, []);
 
   return (
-    <group {...props} ref={groupRef} visible={false}>
+    <group name={`wheels`} {...props} ref={groupRef} visible={false}>
       <mesh
         castShadow
         receiveShadow
         geometry={nodes.Cylinder002.geometry}
         position={[-0.706, 0.316, 1.996]}
-      >
-        <WheelsMaterial
-          wheelUniformRef={wheelUniformRef}
-          wheelRoughness={wheelRoughness}
-        />
-      </mesh>
+      ></mesh>
       <mesh
         castShadow
         receiveShadow
         geometry={nodes.Cylinder001.geometry}
         position={[-0.706, 0.316, 1.996]}
-      >
-        <WheelsMaterial
-          wheelUniformRef={wheelUniformRef}
-          wheelRoughness={wheelRoughness}
-        />
-      </mesh>
+      ></mesh>
       <mesh
         castShadow
         receiveShadow
         geometry={nodes.Cylinder003.geometry}
         position={[-0.706, 0.316, 1.996]}
+        ref={mainWheelRef}
       >
         <WheelsMaterial
           wheelUniformRef={wheelUniformRef}
@@ -101,16 +98,8 @@ const Wheels = (props) => {
         receiveShadow
         geometry={nodes.Cylinder004.geometry}
         position={[-0.706, 0.316, 1.996]}
-      >
-        <WheelsMaterial
-          wheelUniformRef={wheelUniformRef}
-          wheelRoughness={wheelRoughness}
-        />
-      </mesh>
-      {/* <WheelsMaterial
-        wheelUniformRef={wheelUniformRef}
-        wheelRoughness={wheelRoughness}
-      /> */}
+      ></mesh>
+
       <Bearings />
     </group>
   );
