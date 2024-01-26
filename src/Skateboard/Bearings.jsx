@@ -64,7 +64,7 @@ const Bearings = (props) => {
           material={materials.bearingsMaterial}
         />
       </group>
-      <group position={[0.001, 0.316, -0.009]}>
+      <group position={[0.001, 0.316, -0.009]} visible={false}>
         <mesh
           castShadow
           receiveShadow
@@ -72,7 +72,6 @@ const Bearings = (props) => {
           material={materials.bearingsBlack}
         />
         <mesh
-          visible={false}
           castShadow
           receiveShadow
           geometry={nodes.bearings002_2.geometry}

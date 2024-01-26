@@ -38,6 +38,8 @@ const Scene = () => {
 
   const [currentDeckIndex, setCurrentDeckIndex] = useState(deckInfoHaft);
   const [currentTruckIndex, setCurrentTruckIndex] = useState(0);
+  const [currentWheelIndex, setCurrentWheelIndex] = useState(0);
+  const [bearingRestPositon, setBearingRestPositon] = useState(0);
   const [lastTruckIndex, setLastTruckIndex] = useState(null);
   const [currentSection, setCurrentSection] = useState("board");
   const [cameraActive, setCameraActiveStatus] = useState(false);
@@ -92,6 +94,7 @@ const Scene = () => {
         const currentDeckGroup = meshGroupRef.current.children[deckIndex];
         const trucksGroup = currentDeckGroup.children[1];
 
+        console.log(currentDeckGroup);
         const boardsToRemoveMaterial = boardMaterials.filter(
           (m, i) => i !== deckIndex
         );
@@ -132,22 +135,18 @@ const Scene = () => {
             },
             "<"
           )
-          .to(
-            trucksGroup.position,
-            {
-              z: 0.16,
-              duration: 0.5,
-              delay: 0.2,
-              ease: "power3.out",
-              onStart: () => {
-                trucksGroup.visible = true;
-              },
-              onComplete: () => {
-                snapTruckScroll(currentTruckIndex);
-              },
+          .to(trucksGroup.position, {
+            z: 0.16,
+            duration: 0.5,
+            delay: 0.2,
+            ease: "power3.out",
+            onStart: () => {
+              trucksGroup.visible = true;
             },
-            ">-25%"
-          );
+            onComplete: () => {
+              snapTruckScroll(currentTruckIndex);
+            },
+          });
       });
 
       self.add("scrollPosX", (items, xDelta) => {
@@ -163,6 +162,7 @@ const Scene = () => {
             .children[1];
 
         const tl = gsap.timeline();
+
         if (animationActive || snapIndex === lastTruckIndex) return;
 
         if (lastTruckIndex === null) {
@@ -271,6 +271,8 @@ const Scene = () => {
         const bearingPart5 = wheelsGroup.children[4].children[4];
 
         const bearingRestPositonX = bearingPart1.position.x;
+
+        setBearingRestPositon({ bearingRestPositonX, frontWheelPositionX });
 
         const tl = gsap.timeline();
 
@@ -392,6 +394,106 @@ const Scene = () => {
           0
         );
       });
+      self.add("wheelsToFinishTransition", () => {
+        const currentBoardGroup = meshGroupRef.current.children[0];
+        const wheelsGroup = currentBoardGroup.children[2].children[0];
+
+        const frontWheel = wheelsGroup.children[2];
+
+        const frontBearing = wheelsGroup.children[4].children[6];
+        const bearingPart1 = wheelsGroup.children[4].children[3];
+        const bearingPart2 = wheelsGroup.children[4].children[0];
+        const bearingPart3 = wheelsGroup.children[4].children[1];
+        const bearingPart4 = wheelsGroup.children[4].children[2];
+        const bearingPart5 = wheelsGroup.children[4].children[4];
+        const tl = gsap.timeline();
+        console.log(bearingRestPositon);
+        tl.to(frontWheel.position, {
+          x: bearingRestPositon.frontWheelPositionX,
+          duration: 0.5,
+          ease: "power3.out",
+        })
+          .to(
+            bearingPart5.position,
+            {
+              x: bearingRestPositon.bearingRestPositonX,
+              duration: 0.4,
+              delay: -0.3,
+              ease: "power3.out",
+            },
+            "bearing"
+          )
+          .to(
+            bearingPart4.position,
+            {
+              x: bearingRestPositon.bearingRestPositonX,
+              duration: 0.4,
+              delay: -0.3,
+              ease: "power3.out",
+            },
+            "bearing"
+          )
+          .to(
+            bearingPart3.position,
+            {
+              x: bearingRestPositon.bearingRestPositonX + 0.02,
+              duration: 0.4,
+              delay: -0.3,
+              ease: "power3.out",
+            },
+            "bearing"
+          )
+          .to(
+            bearingPart2.position,
+            {
+              x: bearingRestPositon.bearingRestPositonX,
+              duration: 0.4,
+              delay: -0.3,
+              ease: "power3.out",
+            },
+            "bearing"
+          )
+          .to(
+            bearingPart1.position,
+            {
+              x: bearingRestPositon.bearingRestPositonX,
+              duration: 0.4,
+              delay: -0.3,
+              ease: "power3.out",
+            },
+            "bearing"
+          )
+          .to(
+            currentBoardGroup.rotation,
+            {
+              x: -Math.PI * 2,
+              y: Math.PI,
+              z: Math.PI * 0.05,
+              duration: 1.6,
+            },
+            "position"
+          )
+          .to(
+            currentBoardGroup.position,
+            {
+              x: currentBoardGroup.position.x - 0.2,
+              z: currentBoardGroup.position.z - 4,
+              y: currentBoardGroup.position.y + 0.05,
+              duration: 1.6,
+              onComplete: () => {
+                setCurrentSection("finish");
+              },
+            },
+            "position"
+          )
+          .to(currentBoardGroup.rotation, {
+            y: Math.PI * 3,
+            duration: 6,
+            delay: 0.1,
+            ease: "none",
+            repeat: -1,
+          });
+      });
     });
   });
 
@@ -464,12 +566,6 @@ const Scene = () => {
     gsapCtx.current.absorbersToWheelsTransition();
   };
 
-  // function selectWheels() {
-  //   addSelection([...selections, wheelsInfo[currentWheelIndex]]);
-  //   setCurrentSection("finish");
-  //   gsapCtx.current.wheelsToFinishTransition();
-  // }
-
   const selectItem = () => {
     if (currentSection === "trucks") {
       selectTrucks();
@@ -478,8 +574,18 @@ const Scene = () => {
     }
   };
 
-  const snapWheelsScroll = (currentWheelskIndex) => {
-    if (gsapCtx.current) gsapCtx.current.scrollWheels(currentWheelskIndex);
+  const snapWheelsScroll = (wheelskIndex) => {
+    if (wheelskIndex !== undefined) {
+      setCurrentWheelIndex(wheelskIndex);
+      if (gsapCtx.current) gsapCtx.current.scrollWheels(wheelskIndex);
+      return;
+    }
+  };
+
+  const selectWheels = () => {
+    addSelection([...selections, wheelsInfo[currentWheelIndex]]);
+
+    gsapCtx.current.wheelsToFinishTransition();
   };
 
   return (
@@ -597,6 +703,12 @@ const Scene = () => {
               })}
             </div>
           </div>
+          <button
+            onClick={selectWheels}
+            className="px-8 py-2 rounded-xl uppercase text-xs bg-black text-white"
+          >
+            Select
+          </button>
         </Html>
       </group>
       <group ref={absorbersGroupContainerRef} name="trucks-container">
